@@ -18,7 +18,7 @@ setup(
     url='https://github.com/ucdrascal/pymcc',
     author='Kenneth Lyons',
     author_email='ixjlyons@gmail.com',
-    license='new BSD',
+    license='MIT',
 
     packages = ['pymcc'],
     package_data={'pymcc': ['firmware/*.rbf']}
