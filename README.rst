@@ -1,5 +1,5 @@
-pytrigno
-========
+pymcc
+=====
 
 ``MccDaq`` provides access to Measurement Computing USB data acquisition
 devices, thanks to `PyDAQFlex <https://github.com/torfbolt/PyDAQFlex/>`_ (which
