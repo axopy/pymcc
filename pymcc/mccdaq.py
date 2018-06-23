@@ -1,34 +1,43 @@
+"""Main module of pymcc.
+
+This module essentially serves as a wrapper around pydaqflex.
+"""
 import numpy
+import warnings
 from pymcc import daqflex
 
 
 class MccDaq(object):
-    """
-    Measurement Computing data acquisition device.
+    """Measurement Computing data acquisition device.
 
     Parameters
     ----------
     rate : int
         The sampling rate in Hz
-    input_range : int
-        Input range for the DAQ (+/-) in volts
-    channel_range : tuple with 2 ints
-        DAQ channels to use, e.g. (lowchan, highchan) obtains data from
-        channels lowchan through highchan
     samples_per_read : int
         Number of samples per channel to read in each read operation
+    channel_range : tuple with 2 ints
+        DAQ channels to use, e.g. (lowchan, highchan) obtains data from
+        channels lowchan through highchan (inclusive).
+    input_range : int, optional
+        Input range for the DAQ (+/-) in volts. See the documentation for your
+        device. For the USB-1608G, this can be any of {1, 2, 5, 10}. The
+        default is 1.
     devname : str, optional
-        Name of the device.  Default is ``'USB_1608G'``.
+        Name of the device. Default is ``'USB_1608G'``.
     """
 
-    def __init__(self, rate, input_range, channel_range, samples_per_read,
-                 devname='USB_1608G'):
+    def __init__(self, rate, samples_per_read, channel_range=(0, 1),
+                 input_range=1, devname='USB_1608G'):
         self.rate = rate
         self.input_range = input_range
         self.channel_range = channel_range
         self.samples_per_read = samples_per_read
 
         self.devname = devname
+
+        self.num_channels = 0
+        self.calibration_data = []
 
         self._initialize()
 
@@ -46,18 +55,23 @@ class MccDaq(object):
         self.set_channel_range(self.channel_range)
 
     def start(self):
-        """
-        Starts the DAQ so it begins reading data. read() should be called as
-        soon as possible.
+        """Start the DAQ so it begins reading data.
+
+        After calling ``start()``, you should call ``read()`` as soon as
+        possible to obtain the very first samples recorded.
         """
         self.device.flush_input_data()
         self.device.send_message("AISCAN:START")
 
     def read(self):
-        """
-        Waits for samples_per_read samples to come in, then returns the data
-        in a numpy array. The size of the array is (NUM_CHANNELS,
-        SAMPLES_PER_READ).
+        """Request ``samples_per_read`` analog input samples.
+
+        The requested samples are returned as a numpy array.
+
+        Returns
+        -------
+        data : ndarray, shape (n_channels, samples_per_read)
+            The data recorded by the device since the last ``read()``.
         """
         data = self.device.read_scan_data(
             self.samples_per_read*self.num_channels, self.rate)
@@ -75,21 +89,28 @@ class MccDaq(object):
         return data
 
     def stop(self):
-        """
-        Stops the DAQ. It needs to be started again before reading.
+        """Stop the DAQ from reading samples.
+
+        It needs to be started again before reading.
         """
         try:
             self.device.send_message("AISCAN:STOP")
-        except:
-            print('warning: DAQ could not be stopped')
-            pass
+        except IOError:
+            warnings.warn("DAQ could not be stopped. Check connection.")
 
     def set_channel_range(self, channel_range):
+        """Set the range of channels to enable.
+
+        Parameters
+        ----------
+        channel_range : tuple
+            A 2-tuple with ``(lowchan, highchan)``, both inclusive.
+        """
         self.channel_range = channel_range
 
         self.calibration_data = []
-        for ch in range(channel_range[0], channel_range[1]+1):
-            self.calibration_data.append(self.device.get_calib_data(ch))
+        for channel in range(channel_range[0], channel_range[1]+1):
+            self.calibration_data.append(self.device.get_calib_data(channel))
 
         self.num_channels = len(self.calibration_data)
 
