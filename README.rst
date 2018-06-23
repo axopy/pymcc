@@ -81,4 +81,7 @@ a 16-bit device (like the USB-1608G), you must request a multiple of 256
 channel (``channel_range=(0, 0)``), you need to set ``samples_per_read`` to
 some integer multiple of 256. If you're using two channels, you can read 128
 samples at a time (2 channels * 128 samples/read * 2 bytes/sample = 512
-bytes/read).
+bytes/read). See Measurement Computing's `Message-based Firmware
+Specification`_ for details.
+
+.. _Message-based Firmware Specification: https://www.mccdaq.com/pdfs/manuals/Message-based%20Firmware%20Specification.pdf>`
